@@ -280,3 +280,19 @@ class TaskManager(BaseTaskManager):
             del self._tasks[name]
         except KeyError as e:
             logger.trace(f"{name}: unable to remove task data (already removed?): {e}")
+
+
+def report_dangling_tasks(owner: object, task_manager: BaseTaskManager) -> None:
+    """Warn about any tasks the task manager still has running.
+
+    Called during teardown by whoever owns a task manager (the runner for the
+    shared one, or a worker with its own) to surface tasks that weren't cleaned
+    up.
+
+    Args:
+        owner: The object reporting the dangling tasks, used to label the log line.
+        task_manager: The task manager whose remaining tasks should be reported.
+    """
+    tasks = [t.get_name() for t in task_manager.current_tasks()]
+    if tasks:
+        logger.warning(f"{owner} dangling tasks detected: {tasks}")

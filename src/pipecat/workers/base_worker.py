@@ -59,7 +59,7 @@ from pipecat.pipeline.job_decorator import _collect_job_handlers
 from pipecat.pipeline.worker_ready_decorator import _collect_worker_ready_handlers
 from pipecat.registry import WorkerRegistry
 from pipecat.registry.types import WorkerErrorData, WorkerReadyData
-from pipecat.utils.asyncio.task_manager import BaseTaskManager
+from pipecat.utils.asyncio.task_manager import BaseTaskManager, report_dangling_tasks
 from pipecat.utils.base_object import BaseObject
 
 
@@ -161,6 +161,7 @@ class BaseWorker(BaseObject, BusSubscriber):
         name: str | None = None,
         *,
         active: bool = True,
+        check_dangling_tasks: bool = True,
         task_manager: BaseTaskManager | None = None,
     ):
         """Initialize the BaseWorker.
@@ -170,9 +171,19 @@ class BaseWorker(BaseObject, BusSubscriber):
                 name is used (useful for instances that don't participate
                 in inter-worker communication).
             active: Whether the worker starts active. Defaults to True.
+            check_dangling_tasks: Whether to warn about tasks left running when
+                the worker finishes. Only applies when the worker owns its task
+                manager; a worker sharing the runner's task manager leaves the
+                report to the runner.
             task_manager: Optional task manager for handling asyncio tasks.
         """
         super().__init__(name=name, task_manager=task_manager)
+
+        # Only the owner of a task manager reports its dangling tasks. A worker
+        # that's handed its own task manager owns it; one that falls back to the
+        # runner's shared task manager does not (the runner reports instead).
+        self._check_dangling_tasks = check_dangling_tasks
+        self._owns_task_manager = task_manager is not None
 
         # Runner-provided context. Populated by ``attach()`` before
         # ``run()`` is called. Accessing ``self.bus`` / ``self.registry``
@@ -341,6 +352,17 @@ class BaseWorker(BaseObject, BusSubscriber):
             pass
         finally:
             await self.stop()
+            self._print_dangling_tasks()
+
+    def _print_dangling_tasks(self) -> None:
+        """Warn about tasks left running on a task manager this worker owns.
+
+        A worker sharing the runner's task manager reports nothing (the runner
+        does), so it doesn't flag the runner's and other workers' tasks as
+        dangling.
+        """
+        if self._check_dangling_tasks and self._owns_task_manager:
+            report_dangling_tasks(self, self.task_manager)
 
     async def start(self) -> None:
         """Mark the worker as started, register, and activate if requested."""
