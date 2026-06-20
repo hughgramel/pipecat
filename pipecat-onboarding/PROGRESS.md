@@ -1,48 +1,55 @@
-# Progress Tracker
+# Pipecat Internals — A Reconstruction Practicum
 
-Check a stage off when its listed `pytest` checkpoints are all green. `main` stays
-pristine as your reference; `git restore <file>` un-guts any stage you want to redo.
+## Completion Record
 
-> Tip: from the repo root, `git diff main --stat` shows which files you've touched.
+Record each assignment as complete once all of its `pytest` checkpoints pass. The `main`
+branch holds the unmodified original for reference; `git restore <file>` returns any
+assignment to its original state should you wish to reattempt it.
 
-## Foundations — the atom and the queues
+> To review the work completed so far, run `git diff main --stat` from the repository
+> root; it lists every file you have modified.
+
+### Unit I — Foundations: the unit of data and the queues
 - [ ] 01 — Frame base class (`Frame.__post_init__`)
 - [ ] 02 — Priority-queue routing (`FrameProcessorQueue.put`)
-- [ ] 03 — Frame queue + uninterruptible tracking (`FrameQueue.reset`)
+- [ ] 03 — Frame queue and uninterruptible tracking (`FrameQueue.reset`)
 
-## The node — FrameProcessor
+### Unit II — The processing node: `FrameProcessor`
 - [ ] 04 — Processor linking (`FrameProcessor.link`)
 - [ ] 05 — Push-frame routing (`__internal_push_frame`)
 - [ ] 06 — Interruption broadcast (`broadcast_interruption`)
 - [ ] 07 — Interruption handling (`_start_interruption`)
 
-## The chain — Pipeline & Worker
+### Unit III — The chain: pipeline and worker
 - [ ] 08 — Pipeline wiring (`Pipeline._link_processors`)
 - [ ] 09 — Pipeline routing (`Pipeline.process_frame`)
-- [ ] 10 — PipelineWorker startup
+- [ ] 10 — Pipeline-worker startup
 - [ ] 11 — Heartbeat monitoring
 
-## VAD — when is the user speaking
+### Unit IV — Voice-activity detection
 - [ ] 12 — VAD confidence state machine (`VADAnalyzer._run_analyzer`)
-- [ ] 13 — VADController event dispatch
-- [ ] 14 — VADProcessor frame injection
+- [ ] 13 — VAD controller event dispatch
+- [ ] 14 — VAD processor frame injection
 
-## Conversation — context & aggregation
-- [ ] 15 — LLMContext (the conversation state)
-- [ ] 16 — LLMUserAggregator (collecting a user turn)
-- [ ] 17 — LLMAssistantAggregator (collecting the LLM reply)
+### Unit V — Conversation: context and aggregation
+- [ ] 15 — `LLMContext` (the conversation-state object)
+- [ ] 16 — User aggregator (assembling a user turn)
+- [ ] 17 — Assistant aggregator (assembling an assistant turn)
 
-## The AI & I/O edges
-- [ ] 18 — STTService base (audio → text)
-- [ ] 19 — TTSService base (text → audio)
-- [ ] 20 — LLMService function-call dispatch
-- [ ] 21 — BaseInputTransport (audio ingress)
-- [ ] 22 — WorkerRunner (the outermost loop)
+### Unit VI — The AI and I/O edges
+- [ ] 18 — STT service base (audio → text)
+- [ ] 19 — TTS service base (text → audio)
+- [ ] 20 — LLM service function-call dispatch
+- [ ] 21 — Base input transport (audio ingress)
+- [ ] 22 — Worker runner (the outermost loop)
 
 ---
 
-**Capstone:** after stage 22, run the whole suite — `uv run pytest` — to confirm
-everything you rebuilt is green together. Then check this:
+### Final assessment
 
-- [ ] 🎓 Full suite green; traced one audio frame from transport-in → transport-out
-      from memory.
+After Assignment 22, run the complete suite — `uv run pytest` — to confirm that every
+reconstruction passes together. Then complete the capstone exercise:
+
+- [ ] Full suite passing; able to trace a single audio frame from `transport-in` to
+      `transport-out` from memory, and to answer the conceptual examination in the
+      Learning Outcomes handout ([`MASTERY.md`](MASTERY.md)).
