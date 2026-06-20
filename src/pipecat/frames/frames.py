@@ -84,13 +84,7 @@ class Frame:
     transport_destination: str | None = field(init=False)
 
     def __post_init__(self):
-        self.id: int = obj_id()
-        self.name: str = f"{self.__class__.__name__}#{obj_count(self)}"
-        self.pts: int | None = None
-        self.broadcast_sibling_id: int | None = None
-        self.metadata: dict[str, Any] = {}
-        self.transport_source: str | None = None
-        self.transport_destination: str | None = None
+        raise NotImplementedError("Stage 01")
 
     def __str__(self):
         return self.name
