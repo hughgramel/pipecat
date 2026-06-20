@@ -81,13 +81,4 @@ class FrameQueue(asyncio.Queue):
 
     def reset(self) -> None:
         """Remove all non-UninterruptibleFrame items, keeping uninterruptible ones."""
-        kept: asyncio.Queue = asyncio.Queue()
-        while not self.empty():
-            item = self.get_nowait()
-            if isinstance(self._frame_getter(item), UninterruptibleFrame):
-                kept.put_nowait(item)
-            self.task_done()
-        while not kept.empty():
-            item = kept.get_nowait()
-            self.put_nowait(item)
-            kept.task_done()
+        raise NotImplementedError("Stage 03")
