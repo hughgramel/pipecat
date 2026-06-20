@@ -1070,39 +1070,7 @@ class PipelineWorker(BaseWorker):
         a StartFrame and by pushing any other frames queued by the user. It runs
         until the worker is cancelled or stopped (e.g. with an EndFrame).
         """
-        self._clock.start()
-
-        self._maybe_start_idle_task()
-
-        start_frame = StartFrame(
-            audio_in_sample_rate=self._params.audio_in_sample_rate,
-            audio_out_sample_rate=self._params.audio_out_sample_rate,
-            enable_metrics=self._params.enable_metrics,
-            enable_tracing=self._enable_tracing,
-            enable_usage_metrics=self._params.enable_usage_metrics,
-            report_only_initial_ttfb=self._params.report_only_initial_ttfb,
-            tracing_context=self._tracing_context,
-        )
-        start_frame.metadata = self._create_start_metadata()
-        await self._pipeline.queue_frame(start_frame)
-
-        # Wait for the pipeline to be started before pushing any other frame.
-        await self._wait_for_pipeline_start(start_frame)
-
-        if self._params.enable_metrics and self._params.send_initial_empty_metrics:
-            await self._pipeline.queue_frame(self._initial_metrics_frame())
-
-        running = True
-        cleanup_pipeline = True
-        while running:
-            frame = await self._push_queue.get()
-            await self._pipeline.queue_frame(frame)
-            if isinstance(frame, (CancelFrame, EndFrame, StopFrame)):
-                await self._wait_for_pipeline_end(frame)
-            running = not isinstance(frame, (CancelFrame, EndFrame, StopFrame))
-            cleanup_pipeline = not isinstance(frame, StopFrame)
-            self._push_queue.task_done()
-        await self._cleanup(cleanup_pipeline)
+        raise NotImplementedError("Stage 10")
 
     async def _source_push_frame(self, frame: Frame, direction: FrameDirection):
         """Process frames coming upstream from the pipeline.
