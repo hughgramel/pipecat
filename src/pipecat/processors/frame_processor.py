@@ -556,9 +556,7 @@ class FrameProcessor(BaseObject):
         Args:
             processor: The processor to link to.
         """
-        self._next = processor
-        processor._prev = self
-        logger.debug(f"Linking {self} -> {self._next}")
+        raise NotImplementedError("Stage 04")
 
     def get_clock(self) -> BaseClock:
         """Get the clock used by this processor.
