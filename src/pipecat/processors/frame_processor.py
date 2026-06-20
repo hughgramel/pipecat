@@ -145,13 +145,7 @@ class FrameProcessorQueue(asyncio.PriorityQueue):
             item (Any): The item to enqueue.
 
         """
-        frame, _, _ = item
-        if isinstance(frame, SystemFrame):
-            self.__high_counter += 1
-            await super().put((self.HIGH_PRIORITY, self.__high_counter, item))
-        else:
-            self.__low_counter += 1
-            await super().put((self.LOW_PRIORITY, self.__low_counter, item))
+        raise NotImplementedError("Stage 02")
 
     async def get(self) -> Any:
         """Retrieve the next item from the queue.
