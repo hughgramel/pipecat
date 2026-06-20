@@ -177,19 +177,7 @@ class VADController(BaseObject):
 
     async def _handle_vad(self, audio: bytes, vad_state: VADState) -> VADState:
         """Handle Voice Activity Detection results and trigger appropriate events."""
-        new_vad_state = await self._vad_analyzer.analyze_audio(audio)
-        if (
-            new_vad_state != vad_state
-            and new_vad_state != VADState.STARTING
-            and new_vad_state != VADState.STOPPING
-        ):
-            if new_vad_state == VADState.SPEAKING:
-                await self._call_event_handler("on_speech_started")
-            elif new_vad_state == VADState.QUIET:
-                await self._call_event_handler("on_speech_stopped")
-
-            vad_state = new_vad_state
-        return vad_state
+        raise NotImplementedError("Stage 13")
 
     async def _audio_idle_handler(self):
         """Monitor for an idle audio stream while in SPEAKING state.
