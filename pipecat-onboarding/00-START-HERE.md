@@ -144,6 +144,15 @@ top-level `conftest.py`; the test helper `run_test(...)` in
 `src/pipecat/tests/utils.py` wires processors into a real pipeline and reports the
 frames it saw — read it once, you'll see it everywhere.
 
+**→ Before stage 01, read [`TESTING.md`](TESTING.md)** — the full manual for running
+tests, reading a failing test as a spec, using `run_test()`, and the thin-mock
+pattern for stages with no isolated test.
+
+## Track your progress
+
+Tick stages off in [`PROGRESS.md`](PROGRESS.md) as their checkpoints go green. `main`
+stays pristine as your reference; `git restore <file>` un-guts any stage to redo it.
+
 ---
 
 ## How each stage works
