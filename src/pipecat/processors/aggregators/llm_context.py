@@ -260,23 +260,7 @@ class LLMContext:
         Returns:
             List of conversation messages.
         """
-        if llm_specific_filter is None:
-            messages = self._messages
-        else:
-            messages = [
-                msg
-                for msg in self._messages
-                if not isinstance(msg, LLMSpecificMessage) or msg.llm == llm_specific_filter
-            ]
-            if len(messages) < len(self._messages):
-                logger.error(
-                    f"Attempted to use incompatible LLMSpecificMessages with LLM '{llm_specific_filter}'."
-                )
-
-        if truncate_large_values:
-            messages = LLMContext._truncate_large_values_from_messages(messages)
-
-        return messages
+        raise NotImplementedError("Stage 15")
 
     @staticmethod
     def _truncate_large_values_from_messages(
