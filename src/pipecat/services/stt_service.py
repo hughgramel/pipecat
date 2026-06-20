@@ -400,59 +400,7 @@ class STTService(AIService):
             frame: The frame to process.
             direction: The direction of frame processing.
         """
-        await super().process_frame(frame, direction)
-
-        if isinstance(frame, StartFrame):
-            # Push StartFrame first, then metadata so downstream receives them in order
-            await self.push_frame(frame, direction)
-            await self._push_stt_metadata()
-        elif isinstance(frame, ServiceSwitcherRequestMetadataFrame):
-            await self._push_stt_metadata()
-            await self.push_frame(frame, direction)
-        elif isinstance(frame, AudioRawFrame):
-            # In this service we accumulate audio internally and at the end we
-            # push a TextFrame. We also push audio downstream in case someone
-            # else needs it.
-            await self.process_audio_frame(frame, direction)
-            if self._audio_passthrough:
-                await self.push_frame(frame, direction)
-        elif isinstance(frame, VADUserStartedSpeakingFrame):
-            await self._handle_vad_user_started_speaking(frame)
-            await self.push_frame(frame, direction)
-        elif isinstance(frame, VADUserStoppedSpeakingFrame):
-            await self._handle_vad_user_stopped_speaking(frame)
-            await self.push_frame(frame, direction)
-        elif isinstance(frame, UserStoppedSpeakingFrame):
-            await self._maybe_reconnect_on_user_stopped_speaking()
-            await self.push_frame(frame, direction)
-        elif isinstance(frame, STTUpdateSettingsFrame):
-            if frame.service is not None and frame.service is not self:
-                await self.push_frame(frame, direction)
-            elif frame.delta is not None:
-                await self._update_settings(frame.delta)
-            elif frame.settings:
-                # Backward-compatible path: convert legacy dict to settings object.
-                with warnings.catch_warnings():
-                    warnings.simplefilter("always")
-                    warnings.warn(
-                        "Passing a dict via STTUpdateSettingsFrame(settings={...}) is deprecated "
-                        "since 0.0.104, use STTUpdateSettingsFrame(delta=STTSettings(...)) instead.",
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
-                delta = type(self._settings).from_mapping(frame.settings)
-                await self._update_settings(delta)
-        elif isinstance(frame, STTMuteFrame):
-            self._muted = frame.mute
-            logger.debug(f"STT service {'muted' if frame.mute else 'unmuted'}")
-        elif isinstance(frame, InterruptionFrame):
-            await self._reset_stt_ttfb_state()
-            await self.push_frame(frame, direction)
-        elif isinstance(frame, LLMContextAssistantTurnFrame):
-            await self._process_assistant_turn(frame.text)
-            await self.push_frame(frame, direction)
-        else:
-            await self.push_frame(frame, direction)
+        raise NotImplementedError("Stage 18")
 
     async def push_frame(self, frame: Frame, direction: FrameDirection = FrameDirection.DOWNSTREAM):
         """Push a frame downstream, tracking TranscriptionFrame timestamps for TTFB.
