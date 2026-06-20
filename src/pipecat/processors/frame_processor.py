@@ -852,30 +852,7 @@ class FrameProcessor(BaseObject):
 
     async def _start_interruption(self):
         """Start handling an interruption by cancelling current tasks."""
-        try:
-            current_is_uninterruptible = isinstance(
-                self.__process_current_frame, UninterruptibleFrame
-            )
-            if current_is_uninterruptible:
-                # The frame currently being processed is uninterruptible, so we
-                # must not cancel it. Just flush non-uninterruptible frames from
-                # the queue; any uninterruptible ones will be kept and processed
-                # after the current frame finishes.
-                self.__reset_process_queue()
-            else:
-                # Cancel and re-create the process task. Previously this branch
-                # was skipped when the queue contained an uninterruptible frame,
-                # which caused slow non-uninterruptible frames to block
-                # interruptions. Uninterruptible queued frames are safe here
-                # because __create_process_task calls __reset_process_queue
-                # internally, which always preserves them.
-                await self.__cancel_process_task()
-                self.__create_process_task()
-        except Exception as e:
-            await self.push_error(
-                error_msg=f"Uncaught exception handling _start_interruption: {e}",
-                exception=e,
-            )
+        raise NotImplementedError("Stage 07")
 
     async def __internal_push_frame(self, frame: Frame, direction: FrameDirection):
         """Internal method to push frames to adjacent processors.
