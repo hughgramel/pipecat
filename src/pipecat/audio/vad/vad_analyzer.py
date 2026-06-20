@@ -188,59 +188,7 @@ class VADAnalyzer(ABC):
 
     def _run_analyzer(self, buffer: bytes) -> VADState:
         """Analyze audio buffer and return current VAD state."""
-        self._vad_buffer += buffer
-
-        num_required_bytes = self._vad_frames_num_bytes
-        if len(self._vad_buffer) < num_required_bytes:
-            return self._vad_state
-
-        while len(self._vad_buffer) >= num_required_bytes:
-            audio_frames = self._vad_buffer[:num_required_bytes]
-            self._vad_buffer = self._vad_buffer[num_required_bytes:]
-
-            confidence = self.voice_confidence(audio_frames)
-
-            volume = self._get_smoothed_volume(audio_frames)
-            self._prev_volume = volume
-
-            speaking = confidence >= self._params.confidence and volume >= self._params.min_volume
-
-            if speaking:
-                match self._vad_state:
-                    case VADState.QUIET:
-                        self._vad_state = VADState.STARTING
-                        self._vad_starting_count = 1
-                    case VADState.STARTING:
-                        self._vad_starting_count += 1
-                    case VADState.STOPPING:
-                        self._vad_state = VADState.SPEAKING
-                        self._vad_stopping_count = 0
-            else:
-                match self._vad_state:
-                    case VADState.STARTING:
-                        self._vad_state = VADState.QUIET
-                        self._vad_starting_count = 0
-                    case VADState.SPEAKING:
-                        self._vad_state = VADState.STOPPING
-                        self._vad_stopping_count = 1
-                    case VADState.STOPPING:
-                        self._vad_stopping_count += 1
-
-        if (
-            self._vad_state == VADState.STARTING
-            and self._vad_starting_count >= self._vad_start_frames
-        ):
-            self._vad_state = VADState.SPEAKING
-            self._vad_starting_count = 0
-
-        if (
-            self._vad_state == VADState.STOPPING
-            and self._vad_stopping_count >= self._vad_stop_frames
-        ):
-            self._vad_state = VADState.QUIET
-            self._vad_stopping_count = 0
-
-        return self._vad_state
+        raise NotImplementedError("Stage 12")
 
     async def cleanup(self):
         """Clean up resources.
