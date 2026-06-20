@@ -734,10 +734,7 @@ class FrameProcessor(BaseObject):
 
     async def broadcast_interruption(self):
         """Broadcast an `InterruptionFrame` both upstream and downstream."""
-        logger.debug(f"{self}: broadcasting interruption")
-        self.__reset_process_task()
-        await self.stop_all_metrics()
-        await self.broadcast_frame(InterruptionFrame)
+        raise NotImplementedError("Stage 06")
 
     @deprecated(
         "`FrameProcessor.push_interruption_task_frame_and_wait` is deprecated since 0.0.104 "
