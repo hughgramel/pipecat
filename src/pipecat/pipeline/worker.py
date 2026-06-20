@@ -1205,12 +1205,7 @@ class PipelineWorker(BaseWorker):
 
     async def _heartbeat_push_handler(self):
         """Push heartbeat frames at regular intervals."""
-        while True:
-            # Don't use `queue_frame()` because if an EndFrame is queued the
-            # worker will just stop waiting for the pipeline to finish not
-            # allowing more frames to be pushed.
-            await self._pipeline.queue_frame(HeartbeatFrame(timestamp=self._clock.get_time()))
-            await asyncio.sleep(self._params.heartbeats_period_secs)
+        raise NotImplementedError("Stage 11")
 
     async def _heartbeat_monitor_handler(self):
         """Monitor heartbeat frames for processing time and timeout detection.
