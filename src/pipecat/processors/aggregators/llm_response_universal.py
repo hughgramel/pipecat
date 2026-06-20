@@ -769,71 +769,7 @@ class LLMUserAggregator(LLMContextAggregator):
             frame: The frame to process.
             direction: The direction of frame flow in the pipeline.
         """
-        await super().process_frame(frame, direction)
-
-        if await self._maybe_mute_frame(frame):
-            return
-
-        if self._vad_controller:
-            await self._vad_controller.process_frame(frame)
-
-        if isinstance(frame, StartFrame):
-            # Push StartFrame before start(), because we want StartFrame to be
-            # processed by every processor before any other frame is processed.
-            await self.push_frame(frame, direction)
-            await self._start(frame)
-        elif isinstance(frame, EndFrame):
-            # Push EndFrame before stop(), because stop() waits on the task to
-            # finish and the task finishes when EndFrame is processed.
-            await self.push_frame(frame, direction)
-            await self._stop(frame)
-        elif isinstance(frame, CancelFrame):
-            await self._cancel(frame)
-            await self.push_frame(frame, direction)
-        elif isinstance(frame, TranscriptionFrame):
-            await self._handle_transcription(frame)
-        elif isinstance(frame, (InterimTranscriptionFrame, TranslationFrame)):
-            # Interim transcriptions and translations are consumed here
-            # and not pushed downstream, same as final TranscriptionFrame.
-            pass
-        elif isinstance(frame, LLMRunFrame):
-            await self._handle_llm_run(frame)
-        elif isinstance(frame, LLMMessagesAppendFrame):
-            await self._handle_llm_messages_append(frame)
-        elif isinstance(frame, LLMMessagesUpdateFrame):
-            await self._handle_llm_messages_update(frame)
-        elif isinstance(frame, LLMMessagesTransformFrame):
-            await self._handle_llm_messages_transform(frame)
-        elif isinstance(frame, LLMSetToolsFrame):
-            # Normalize and validate (a plain list of direct functions / FunctionSchema
-            # objects becomes a ToolsSchema) so the tool-change diff and
-            # set_tools see a consistent type.
-            normalized_tools = LLMContext._normalize_and_validate_tools(frame.tools)
-            self._maybe_add_tool_change_messages(normalized_tools)
-            self.set_tools(normalized_tools)
-            # Push the LLMSetToolsFrame as well, since speech-to-speech LLM
-            # services (like OpenAI Realtime) may need to know about tool
-            # changes; unlike text-based LLM services they won't just "pick up
-            # the change" on the next LLM run, as the LLM is continuously
-            # running.
-            await self.push_frame(frame, direction)
-        elif isinstance(frame, LLMSetToolChoiceFrame):
-            self.set_tool_choice(frame.tool_choice)
-        elif isinstance(frame, RealtimeServiceMetadataFrame):
-            await self._handle_realtime_service_metadata(frame)
-            await self.push_frame(frame, direction)
-        elif isinstance(frame, STTMetadataFrame):
-            # Capture the STT TTFS P99 so the realtime-mode deferred
-            # handoff flush can size itself to the real transcript-arrival
-            # latency. Frame still flows downstream for other consumers.
-            self._ttfs_p99_latency = frame.ttfs_p99_latency
-            await self.push_frame(frame, direction)
-        else:
-            await self.push_frame(frame, direction)
-
-        await self._user_turn_controller.process_frame(frame)
-
-        await self._user_idle_controller.process_frame(frame)
+        raise NotImplementedError("Stage 16")
 
     async def push_aggregation(self) -> str:
         """Push the current aggregation."""
