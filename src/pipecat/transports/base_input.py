@@ -205,41 +205,7 @@ class BaseInputTransport(FrameProcessor):
             frame: The frame to process.
             direction: The direction of frame flow in the pipeline.
         """
-        await super().process_frame(frame, direction)
-
-        # Specific system frames
-        if isinstance(frame, StartFrame):
-            # Push StartFrame before start(), because we want StartFrame to be
-            # processed by every processor before any other frame is processed.
-            await self.push_frame(frame, direction)
-            await self.start(frame)
-        elif isinstance(frame, CancelFrame):
-            await self.cancel(frame)
-            await self.push_frame(frame, direction)
-        # Audio pushed in from upstream (e.g. by RTVIProcessor) is fed through
-        # the same VAD/processing path as audio captured from the source,
-        # rather than forwarded as a plain system frame.
-        elif isinstance(frame, InputAudioRawFrame):
-            await self.push_audio_frame(frame)
-        # All other system frames
-        elif isinstance(frame, SystemFrame):
-            await self.push_frame(frame, direction)
-        # Control frames
-        elif isinstance(frame, InputTransportStartAudioStreamingFrame):
-            await self._start_audio_in_streaming()
-        elif isinstance(frame, EndFrame):
-            # Push EndFrame before stop(), because stop() waits on the task to
-            # finish and the task finishes when EndFrame is processed.
-            await self.push_frame(frame, direction)
-            await self.stop(frame)
-        elif isinstance(frame, StopFrame):
-            await self.push_frame(frame, direction)
-            await self.pause(frame)
-        elif isinstance(frame, FilterUpdateSettingsFrame) and self._params.audio_in_filter:
-            await self._params.audio_in_filter.process_frame(frame)
-        # Other frames
-        else:
-            await self.push_frame(frame, direction)
+        raise NotImplementedError("Stage 21")
 
     #
     # Audio input
