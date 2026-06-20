@@ -134,7 +134,7 @@ them, the timestamp gap tells you exactly when forward progress stopped.
 
 - [ ] **Implement the periodic send loop** and verify the happy path:
   ```
-  uv run pytest tests/test_pipeline.py::TestPipeline::test_task_heartbeats
+  uv run pytest tests/test_pipeline.py::TestPipelineTask::test_task_heartbeats
   ```
   The test creates a pipeline with `heartbeats_period_secs=0.2`, waits for 5
   heartbeats via an observer callback, then asserts both `count >= 5` and
@@ -142,7 +142,7 @@ them, the timestamp gap tells you exactly when forward progress stopped.
 
 - [ ] **Respect the custom monitor timeout.** Run:
   ```
-  uv run pytest tests/test_pipeline.py::TestPipeline::test_heartbeat_monitor_respects_custom_timeout
+  uv run pytest tests/test_pipeline.py::TestPipelineTask::test_heartbeat_monitor_respects_custom_timeout
   ```
   The test inserts a `HeartbeatBlocker` that swallows all `HeartbeatFrame`s,
   sets `heartbeats_monitor_secs=0.3`, runs for 0.6 s, then asserts the log

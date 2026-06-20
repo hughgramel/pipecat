@@ -91,27 +91,63 @@ If a barge-in left a half-finished assistant message unrecorded, the LLM's next 
 
 - [ ] **Gut check.** Answer the three predict-the-behavior questions in the orientation section above. Write your answers down before running any tests.
 
-- [ ] **Implement: accumulate tokens and commit on End.** Restore `process_frame` so that `LLMFullResponseStartFrame` calls `_handle_llm_start`, `LLMTextFrame` (and general `TextFrame`) calls `_handle_text`, and `LLMFullResponseEndFrame` calls `_handle_llm_end`. Keep the `super().process_frame` call at the top and the `pass-through` else branch at the bottom. Run the happy-path test:
+  > **Note — expected failure mode (HANG, not crash).** Gutting
+  > `LLMAssistantAggregator.process_frame` does not produce a clean `FAILED`
+  > line. The covering tests **hang indefinitely** because Pipecat's
+  > `TaskManager` swallows exceptions raised inside background asyncio tasks:
+  > the `NotImplementedError` is caught internally, and the outer `run()` loop
+  > waits forever for a terminal frame that never arrives. The "red light" for
+  > this stage is a test that does not return — interrupt with `Ctrl-C` or set
+  > a pytest timeout. A hanging test runner confirms the function is correctly
+  > gutted; an ordinary `FAILED` assertion would not.
+
+- [ ] **Implement: accumulate tokens and commit on End.** Restore `process_frame`
+  so that `LLMFullResponseStartFrame` calls `_handle_llm_start`, `LLMTextFrame`
+  (and general `TextFrame`) calls `_handle_text`, and `LLMFullResponseEndFrame`
+  calls `_handle_llm_end`. Keep the `super().process_frame` call at the top and
+  the pass-through `else` branch at the bottom. Run the happy-path test:
   ```
-  uv run pytest tests/test_llm_response.py::TestLLMFullResponseAggregator::test_simple -v
+  uv run pytest tests/test_context_aggregators_universal.py::TestLLMAssistantAggregator::test_simple -v
+  ```
+  This test sends `LLMFullResponseStartFrame → LLMTextFrame("Hello from ") →
+  LLMTextFrame("Pipecat!") → LLMFullResponseEndFrame` and asserts one assistant
+  message with content `"Hello from Pipecat!"` appears in context.
+
+  > **Note on `tests/test_llm_response.py`.** That file contains a
+  > `TestLLMFullResponseAggregator` class that tests an older helper class
+  > (`LLMFullResponseAggregator` from `pipecat.processors.aggregators.llm_response`),
+  > not `LLMAssistantAggregator`. Those tests do not exercise the method being
+  > reconstructed in this stage and will not turn red when `process_frame` is
+  > gutted. Use the `TestLLMAssistantAggregator` tests in
+  > `tests/test_context_aggregators_universal.py` for all verification here.
+
+- [ ] **Full context-frame run test.** Verify the aggregator pushes an
+  `LLMContextFrame` upstream when `LLMRunFrame` arrives:
+  ```
+  uv run pytest tests/test_context_aggregators_universal.py::TestLLMAssistantAggregator::test_llm_run -v
   ```
 
-- [ ] **Full context-frame run test.** Verify the aggregator pushes an `LLMContextFrame` upstream when `LLMRunFrame` arrives:
+- [ ] **Messages update and transform.** Confirm the aggregator correctly replaces
+  and transforms messages in the shared context without triggering an LLM run
+  unless `run_llm=True`:
   ```
-  uv run pytest tests/test_context_aggregators_universal.py::TestContextAggregatorsUniversal::test_llm_run -v
-  ```
-
-- [ ] **Messages update and transform.** Confirm the aggregator correctly replaces and transforms messages in the shared context without triggering an LLM run unless `run_llm=True`:
-  ```
-  uv run pytest tests/test_context_aggregators_universal.py::TestContextAggregatorsUniversal::test_llm_messages_update tests/test_context_aggregators_universal.py::TestContextAggregatorsUniversal::test_llm_messages_transform -v
+  uv run pytest tests/test_context_aggregators_universal.py::TestLLMAssistantAggregator::test_llm_messages_update tests/test_context_aggregators_universal.py::TestLLMAssistantAggregator::test_llm_messages_transform -v
   ```
 
-- [ ] **Edge case: interruption commits the partial turn, flagged correctly.** Send `LLMFullResponseStartFrame → LLMTextFrame("Hello ") → InterruptionFrame → LLMFullResponseStartFrame → LLMTextFrame("Hello ") → LLMTextFrame("there!") → LLMFullResponseEndFrame`. Confirm `stop_messages[0].interrupted` is `True`, `stop_messages[0].content == "Hello"`, and `stop_messages[1].interrupted` is `False`:
+- [ ] **Edge case: interruption commits the partial turn, flagged correctly.**
+  Send `LLMFullResponseStartFrame → LLMTextFrame("Hello ") → InterruptionFrame →
+  LLMFullResponseStartFrame → LLMTextFrame("Hello ") → LLMTextFrame("there!") →
+  LLMFullResponseEndFrame`. Confirm `stop_messages[0].interrupted` is `True`,
+  `stop_messages[0].content == "Hello "`, and `stop_messages[1].interrupted` is
+  `False`:
   ```
-  uv run pytest tests/test_llm_response.py::TestLLMFullResponseAggregator::test_interruption -v
+  uv run pytest tests/test_context_aggregators_universal.py::TestLLMAssistantAggregator::test_interruption -v
   ```
 
-- [ ] **Reflect.** Why does the design commit the partial on interruption rather than discard it? What would break in a real voice conversation if you discarded it instead? What downstream code would need to change if you wanted to suppress partial replies from ever entering context?
+- [ ] **Reflect.** Why does the design commit the partial on interruption rather
+  than discard it? What would break in a real voice conversation if you discarded
+  it instead? What downstream code would need to change if you wanted to suppress
+  partial replies from ever entering context?
 
 ---
 

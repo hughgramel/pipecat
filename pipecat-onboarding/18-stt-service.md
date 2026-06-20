@@ -76,7 +76,7 @@ Create a subclass, implement `run_stt`. Everything else — frame routing, mutin
 2. What happens to audio arriving while `self._muted is True`? Does it reach `run_stt`? Does the audio passthrough fire?
 3. An `STTMuteFrame(mute=True)` arrives. Then a `VADUserStartedSpeakingFrame` arrives. Then `STTMuteFrame(mute=False)` arrives. At what point does `run_stt` start receiving audio again?
 
-**Note on tests:** There is NO framework-level unit test for `STTService.process_frame` in isolation. The test suite tests concrete provider integrations — see `tests/test_assemblyai_stt.py`, `tests/test_azure_stt.py`, `tests/test_deepgram_stt.py` — each with network mocks specific to that provider's protocol. The closest generic exercise of the STT→aggregator path is `tests/test_context_aggregators_universal.py::TestContextAggregatorsUniversal::test_default_user_turn_strategies`, but it injects a `TranscriptionFrame` directly rather than going through `STTService`. The checkpoint below shows you how to verify `STTService.process_frame` using a thin mock.
+**Note on tests:** There is NO framework-level unit test for `STTService.process_frame` in isolation. The test suite tests concrete provider integrations — see `tests/test_assemblyai_stt.py`, `tests/test_azure_stt.py`, `tests/test_deepgram_stt.py` — each with network mocks specific to that provider's protocol. The closest generic exercise of the STT→aggregator path is `tests/test_context_aggregators_universal.py::TestLLMUserAggregator::test_default_user_turn_strategies`, but it injects a `TranscriptionFrame` directly rather than going through `STTService`. The checkpoint below shows you how to verify `STTService.process_frame` using a thin mock.
 
 ---
 
@@ -138,7 +138,7 @@ Every STT provider in Pipecat follows this exact contract — implement `run_stt
 - [ ] **Integration green-light.** Run the closest existing test that exercises the STT→aggregator frame flow:
 
   ```bash
-  uv run pytest tests/test_context_aggregators_universal.py::TestContextAggregatorsUniversal::test_default_user_turn_strategies -v
+  uv run pytest tests/test_context_aggregators_universal.py::TestLLMUserAggregator::test_default_user_turn_strategies -v
   ```
 
   This test injects a `TranscriptionFrame` directly into the aggregator (no `STTService` in the pipeline), but it confirms that `TranscriptionFrame` downstream of where your `STTService` sits will correctly trigger a user turn. It should pass without touching your implementation.

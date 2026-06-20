@@ -132,9 +132,19 @@ whether a `VADUserStoppedSpeakingFrame` is actually reaching the aggregator.
   (`test_user_turn_stop_timeout_no_transcription`) and the test at line 91
   (`test_llm_run`).
 
+  > **Note — expected failure mode (HANG, not crash).** Gutting
+  > `LLMUserAggregator.process_frame` does not produce a clean `FAILED` line.
+  > The covering tests **hang indefinitely** because Pipecat's `TaskManager`
+  > swallows exceptions raised inside background asyncio tasks: the
+  > `NotImplementedError` is caught internally, and the pipeline's internal
+  > `run()` loop waits forever for a terminal frame that never arrives. The
+  > "red light" for this stage is a test that does not return — interrupt with
+  > `Ctrl-C` or set a pytest timeout. A hanging test runner confirms the
+  > function is correctly gutted; an ordinary `FAILED` assertion would not.
+
 - [ ] **Implement transcription accumulation + message append**, then run:
   ```
-  uv run pytest tests/test_context_aggregators_universal.py::TestContextAggregatorsUniversal::test_llm_messages_append
+  uv run pytest tests/test_context_aggregators_universal.py::TestLLMUserAggregator::test_llm_messages_append
   ```
   This confirms that `LLMMessagesAppendFrame` writes to context without
   emitting `LLMContextFrame` when `run_llm=False`.
@@ -142,14 +152,14 @@ whether a `VADUserStoppedSpeakingFrame` is actually reaching the aggregator.
 - [ ] **Implement the full turn flow** (VAD started → transcription → VAD
   stopped → LLMContextFrame), then run:
   ```
-  uv run pytest tests/test_context_aggregators_universal.py::TestContextAggregatorsUniversal::test_llm_run
+  uv run pytest tests/test_context_aggregators_universal.py::TestLLMUserAggregator::test_llm_run
   ```
   This confirms that `LLMRunFrame` bypasses the turn machinery and immediately
   emits `LLMContextFrame`.
 
 - [ ] **Verify default turn strategies**, then run:
   ```
-  uv run pytest tests/test_context_aggregators_universal.py::TestContextAggregatorsUniversal::test_default_user_turn_strategies
+  uv run pytest tests/test_context_aggregators_universal.py::TestLLMUserAggregator::test_default_user_turn_strategies
   ```
   This sends `VADUserStartedSpeakingFrame` → `TranscriptionFrame("Hello!")` →
   `VADUserStoppedSpeakingFrame` and checks that `UserStartedSpeakingFrame`,
@@ -158,7 +168,7 @@ whether a `VADUserStoppedSpeakingFrame` is actually reaching the aggregator.
 
 - [ ] **Edge case: stop with no transcription (timeout)**, then run:
   ```
-  uv run pytest tests/test_context_aggregators_universal.py::TestContextAggregatorsUniversal::test_user_turn_stop_timeout_no_transcription
+  uv run pytest tests/test_context_aggregators_universal.py::TestLLMUserAggregator::test_user_turn_stop_timeout_no_transcription
   ```
   This sends `VADUserStartedSpeakingFrame` → `VADUserStoppedSpeakingFrame`
   (no `TranscriptionFrame` in between) and waits for `user_turn_stop_timeout`.

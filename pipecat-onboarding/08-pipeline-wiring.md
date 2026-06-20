@@ -88,8 +88,8 @@ Pipeline([transport.input(), stt, llm, tts, transport.output()])
 - [ ] **Verify the upstream exit path.**
   Run:
   ```
-  uv run pytest tests/test_pipeline.py::TestPipeline::test_task_queue_frame_upstream
-  uv run pytest tests/test_pipeline.py::TestPipeline::test_task_queue_frames_upstream
+  uv run pytest tests/test_pipeline.py::TestPipelineTask::test_task_queue_frame_upstream
+  uv run pytest tests/test_pipeline.py::TestPipelineTask::test_task_queue_frames_upstream
   ```
   These tests queue frames in `FrameDirection.UPSTREAM` and assert the `PipelineWorker` receives them via `on_frame_reached_upstream`. If they fail, check that `PipelineSource._upstream_push_frame` is reachable — meaning source is correctly at position 0 and linked to the rest of the chain.
 

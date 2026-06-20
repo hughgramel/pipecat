@@ -197,12 +197,22 @@ receives.
   `self._pipeline`, and wait for the pipeline start event. Then run:
 
   ```
-  uv run pytest tests/test_pipeline.py::TestPipeline::test_task_single
+  uv run pytest tests/test_pipeline.py::TestPipelineTask::test_task_single
   ```
 
   The test constructs a bare `PipelineWorker`, queues two `TextFrame`s and an
   `EndFrame`, then calls `run()` and asserts `worker.has_finished()`. It passes
   when your `StartFrame` reaches the sink and the main loop drains the queue.
+
+  > **Note — expected failure mode (HANG, not crash).** Gutting
+  > `_process_push_queue` does not produce a clean `FAILED` line in pytest.
+  > Instead, the test **hangs indefinitely**. This is because Pipecat's
+  > `TaskManager` swallows exceptions raised inside background asyncio tasks:
+  > the `NotImplementedError` is caught internally and the outer `run()` loop
+  > waits forever for a terminal frame that never arrives. The "red light" for
+  > this stage is therefore a test that does not return (interrupt with
+  > `Ctrl-C` or set a pytest timeout). A hanging test runner confirms the
+  > function is correctly gutted; an ordinary `FAILED` assertion would not.
 
 - [ ] **Implement: lifecycle events and main loop.** Add the optional initial
   metrics frame (gated on `params.enable_metrics and params.send_initial_empty_metrics`),
@@ -211,7 +221,7 @@ receives.
   needed, and calls `self._cleanup`. Then run:
 
   ```
-  uv run pytest tests/test_pipeline.py::TestPipeline::test_task_started_ended_event_handler
+  uv run pytest tests/test_pipeline.py::TestPipelineTask::test_task_started_ended_event_handler
   ```
 
   The test registers `on_pipeline_started` and `on_pipeline_finished` handlers
@@ -228,7 +238,7 @@ receives.
   Then run:
 
   ```
-  uv run pytest tests/test_pipeline.py::TestPipeline::test_task_heartbeats
+  uv run pytest tests/test_pipeline.py::TestPipelineTask::test_task_heartbeats
   ```
 
   The test constructs a `PipelineWorker` with `PipelineParams(enable_heartbeats=True,

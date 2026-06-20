@@ -100,6 +100,19 @@ VAD tuning directly controls the user experience of barge-in: `start_secs` and `
 
 ---
 
+## Verification approach — thin-mock harness
+
+> **No existing test turns red when this function is gutted.**
+>
+> Every test in the Pipecat suite that exercises VAD mocks `analyze_audio` at
+> the `VADController` or `VADProcessor` level — they inject pre-chosen
+> `VADState` values directly and never reach `_run_analyzer`. Because
+> `_run_analyzer` is the concrete inference loop inside the abstract base class,
+> no unit test calls it on a real `VADAnalyzer` subclass. This stage therefore
+> uses a thin-mock verification harness instead of a suite test. See
+> `TESTING.md` (§ "Verification without a dedicated test") for the general
+> pattern; the specific script is described in the tasks below.
+
 ## Your tasks (in order)
 
 - [ ] **Read and trace the state machine.** Read `_run_analyzer` in full. Draw the four-state diagram on paper (or in a comment). Identify the two post-loop threshold checks and explain why they happen after the while loop rather than inside it.
@@ -108,27 +121,108 @@ VAD tuning directly controls the user experience of barge-in: `start_secs` and `
 
 - [ ] **Gut check: predict behavior.** Answer the three predict-the-behavior questions from the orientation section out loud (or in a comment). Do this before writing a single line of implementation.
 
-- [ ] **Implement QUIET → STARTING → SPEAKING on rising confidence.** Wire up the `speaking` boolean, the QUIET-to-STARTING transition, the STARTING count increment, and the post-loop check that promotes STARTING → SPEAKING when `_vad_starting_count >= _vad_start_frames`. Run:
-  ```
-  uv run pytest tests/test_silero_vad.py::TestSileroVAD::test_voice_confidence_conversion_matches_expected
-  ```
-  This test confirms the `voice_confidence()` path (int16→float32 conversion) that feeds your confidence variable. It should pass as long as you call `self.voice_confidence(audio_frames)` correctly and do not mutate the buffer before passing it.
+- [ ] **Thin-mock verification — pre-reconstruction (red phase).** Before restoring
+  `_run_analyzer`, write and run the following script to confirm the gutted
+  function raises `NotImplementedError`:
 
-- [ ] **Silence stays QUIET.** Add the low-confidence branches (STARTING → QUIET reset, SPEAKING → STOPPING, STOPPING count increment, STOPPING → QUIET post-loop check). Run:
-  ```
-  uv run pytest tests/test_silero_vad.py::TestSileroVAD::test_voice_confidence_silence
-  ```
-  Silence audio produces a confidence well below 0.5, so a fresh analyzer fed silence must return QUIET.
+  ```python
+  # verify_stage12_pre.py
+  import asyncio, sys
+  sys.path.insert(0, "src")
 
-- [ ] **Edge case: transitional states produce no event (named test).** STARTING and STOPPING are internal hysteresis states; the VADController (stage 13) only fires events on SPEAKING and QUIET. Confirm your implementation passes the named test:
-  ```
-  uv run pytest tests/test_vad_controller.py::TestVADController::test_no_event_on_transitional_states
-  ```
-  If this fails, check that your STARTING and STOPPING transitions do not prematurely advance to SPEAKING or QUIET within the same frame.
+  from pipecat.audio.vad.vad_analyzer import VADAnalyzer, VADAnalyzerParams, VADState
+  from pipecat.frames.frames import AudioRawFrame
 
-- [ ] **Edge case: min_volume gate (named).** Add a targeted unit test (or a manual trace) for the case where `confidence >= params.confidence` but `volume < params.min_volume`. The `speaking` boolean must be `False`, so the machine must not advance from QUIET toward STARTING. Write a comment naming this case: "high-confidence low-volume gate".
+  class MinimalAnalyzer(VADAnalyzer):
+      """Minimal concrete subclass — only voice_confidence is required."""
+      def voice_confidence(self, buffer) -> float:
+          return 0.9  # always high confidence
+      def num_frames_required(self) -> int:
+          return 1
 
-- [ ] **Reflect.** Write 2-3 sentences in a comment or your notes: what would you change about the default `start_secs` / `stop_secs` / `confidence` values for a noisy call-center environment vs. a quiet studio? What metric would you add to `_run_analyzer` to make tuning easier?
+  async def main():
+      analyzer = MinimalAnalyzer(VADAnalyzerParams())
+      silent_audio = b"\x00" * 320  # 320 bytes of silence
+      try:
+          result = await analyzer.analyze_audio(silent_audio)
+          print(f"ERROR: expected NotImplementedError, got {result}")
+          sys.exit(1)
+      except NotImplementedError:
+          print("OK: gutted function raises NotImplementedError (red phase confirmed)")
+
+  asyncio.run(main())
+  ```
+
+  Run with: `uv run python verify_stage12_pre.py`
+
+- [ ] **Implement QUIET → STARTING → SPEAKING on rising confidence.** Wire up the
+  `speaking` boolean, the QUIET-to-STARTING transition, the STARTING count
+  increment, and the post-loop check that promotes STARTING → SPEAKING when
+  `_vad_starting_count >= _vad_start_frames`.
+
+- [ ] **Implement the falling path.** Add the low-confidence branches
+  (STARTING → QUIET reset, SPEAKING → STOPPING, STOPPING count increment,
+  STOPPING → QUIET post-loop check).
+
+- [ ] **Thin-mock verification — post-reconstruction (green phase).** After
+  restoring `_run_analyzer`, run the following script to confirm correct
+  behavior:
+
+  ```python
+  # verify_stage12_post.py
+  import asyncio, sys
+  sys.path.insert(0, "src")
+
+  from pipecat.audio.vad.vad_analyzer import VADAnalyzer, VADAnalyzerParams, VADState
+  from pipecat.frames.frames import AudioRawFrame
+
+  class MinimalAnalyzer(VADAnalyzer):
+      def __init__(self, fixed_confidence: float):
+          super().__init__(VADAnalyzerParams(confidence=0.7, start_secs=0.0, stop_secs=0.0))
+          self._fixed = fixed_confidence
+      def voice_confidence(self, buffer) -> float:
+          return self._fixed
+      def num_frames_required(self) -> int:
+          return 1
+
+  async def main():
+      audio = b"\x01" * 320
+
+      # High confidence → should reach SPEAKING after enough frames
+      analyzer = MinimalAnalyzer(0.9)
+      result = await analyzer.analyze_audio(audio)
+      assert result == VADState.SPEAKING, f"Expected SPEAKING, got {result}"
+      print("OK: high-confidence audio → SPEAKING")
+
+      # Low confidence from SPEAKING → should reach QUIET
+      result = await MinimalAnalyzer(0.0).analyze_audio(audio)
+      assert result == VADState.QUIET, f"Expected QUIET, got {result}"
+      print("OK: low-confidence audio → QUIET")
+
+  asyncio.run(main())
+  ```
+
+  Run with: `uv run python verify_stage12_post.py`
+
+  > **Suite coverage note.** The Pipecat test suite mocks `analyze_audio` at the
+  > `VADController`/`VADProcessor` level — it injects `VADState` values directly
+  > and never exercises `_run_analyzer` on a real subclass. The harness above is
+  > therefore the primary verification for this stage. The suite tests in
+  > `tests/test_vad_controller.py` and `tests/test_vad_processor.py` remain
+  > useful as integration smoke tests (they confirm that the controller and
+  > processor still behave correctly after your changes), but none of them will
+  > turn red when `_run_analyzer` is gutted.
+
+- [ ] **Edge case: min_volume gate.** Extend the post-reconstruction script with a
+  case where `confidence >= params.confidence` but volume is below `params.min_volume`.
+  The `speaking` boolean must evaluate to `False`, so the machine must not advance
+  from QUIET toward STARTING. Label this case in a comment: "high-confidence
+  low-volume gate".
+
+- [ ] **Reflect.** Write 2-3 sentences in a comment or your notes: what would you
+  change about the default `start_secs` / `stop_secs` / `confidence` values for
+  a noisy call-center environment vs. a quiet studio? What metric would you add
+  to `_run_analyzer` to make tuning easier?
 
 ---
 

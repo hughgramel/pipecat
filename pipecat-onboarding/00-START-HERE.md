@@ -147,9 +147,9 @@ on functions from earlier assignments, never later ones.
 | 21 | `21-input-transport.md` | `BaseInputTransport.process_frame` | audio ingress | 5 |
 | 22 | `22-worker-runner.md` | `WorkerRunner.run` | the outermost loop | 10 |
 
-> **Note.** Assignments 1, 2, 3, 18, and 19 concern infrastructure or abstract methods
-> that have **no dedicated unit test**. Those assignments state this explicitly and
-> provide a lightweight verification harness in place of a test that does not exist.
+> **Note.** Assignments 1, 2, 3, 12, 18, and 19 concern infrastructure or abstract
+> methods that have **no dedicated unit test**. Those assignments state this explicitly
+> and provide a lightweight verification harness in place of a test that does not exist.
 > Every other assignment maps each task to a specific `pytest` invocation.
 
 ### Assessment
