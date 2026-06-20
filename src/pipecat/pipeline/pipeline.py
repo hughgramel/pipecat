@@ -206,7 +206,4 @@ class Pipeline(BasePipeline):
 
     def _link_processors(self):
         """Link all processors in sequence and set their parent."""
-        prev = self._processors[0]
-        for curr in self._processors[1:]:
-            prev.link(curr)
-            prev = curr
+        raise NotImplementedError("Stage 08")
