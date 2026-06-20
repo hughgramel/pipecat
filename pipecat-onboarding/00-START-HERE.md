@@ -157,14 +157,28 @@ stays pristine as your reference; `git restore <file>` un-guts any stage to redo
 
 ## How each stage works
 
-1. **Read** the real implementation and trace it (always task 1).
-2. **State the contract** — inputs, outputs, invariants — before writing code.
-3. **Paste the setup prompt** into Claude to gut the one function.
-4. **Reimplement** it in small steps, each lighting up a specific existing test.
-5. **Hit the edge cases** (interruption, empty input, cancellation) as named tasks.
-6. **Reflect** — tie it back to a real "why isn't this working" debugging skill.
+The full ritual lives in **[`HOW-TO-DO-A-STAGE.md`](HOW-TO-DO-A-STAGE.md)** — read it
+once. In short:
+
+1. **Orient** — read the diagram + Q&A and this stage's targets in
+   [`MASTERY.md`](MASTERY.md) (what you should be able to explain by the end).
+2. **Gut** — paste the setup prompt to break exactly one function.
+3. **Go red** — run the covering test and confirm it fails; that red test is your spec.
+4. **Rebuild** — work the task list, each sub-behavior lighting up a specific test.
+5. **Go green & close** — checkpoints pass, reflect, tick [`PROGRESS.md`](PROGRESS.md).
 
 Stuck on any stage? Each page has a "Stuck?" prompt that asks Claude to question you
-toward the answer instead of handing it over.
+toward the answer instead of handing it over. On *where to get other functions*: you
+only ever gut one function, so everything it calls still exists — the `Depends on`
+column above names the earlier stages each one leans on.
+
+## The companion files
+
+| File | Use it for |
+|------|-----------|
+| [`HOW-TO-DO-A-STAGE.md`](HOW-TO-DO-A-STAGE.md) | the start-to-finish ritual for every stage + hints/dependencies |
+| [`TESTING.md`](TESTING.md) | running tests, reading a failing test as a spec, `run_test()`, thin mocks |
+| [`MASTERY.md`](MASTERY.md) | per-stage "you can now explain…" statements + the cross-cutting "why X not Y" answers |
+| [`PROGRESS.md`](PROGRESS.md) | check stages off as their tests go green |
 
 Open **`01-frame-base.md`** and begin.
