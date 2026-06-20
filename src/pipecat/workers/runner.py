@@ -223,53 +223,7 @@ class WorkerRunner(BaseObject, BusSubscriber):
                 runner blocks until :meth:`end` or :meth:`cancel` is
                 called.
         """
-        if worker is not None:
-            warnings.warn(
-                "Passing a worker to WorkerRunner.run() is deprecated; "
-                "register it with WorkerRunner.add_workers() before calling run() instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        logger.debug(f"WorkerRunner '{self}': started running")
-        self._auto_end = auto_end
-        self._shutdown_event.clear()
-
-        # Treat the main worker as any other added worker: ``add_workers`` attaches
-        # it to the bus and registry, and ``_setup_session`` then starts every
-        # entry (main and pre-added) through the same code path.
-        if worker is not None:
-            await self.add_workers(worker)
-
-        await self._setup_session()
-        await self._call_event_handler("on_ready")
-
-        # Wait for shutdown. With ``auto_end=True``, ``_run_worker`` sets
-        # ``_shutdown_event`` as soon as any root worker finishes.
-        try:
-            await self._shutdown_event.wait()
-        except asyncio.CancelledError:
-            pass
-
-        try:
-            # Cancel any remaining launched workers and wait for them to finish.
-            await self._cancel_spawned_tasks()
-
-            # Cleanup base object.
-            await self.cleanup()
-
-            # If we are cancelling through a signal, make sure we wait for it so
-            # everything gets cleaned up nicely.
-            if self._sig_task:
-                await self._sig_task
-        finally:
-            await self._bus.stop()
-            self._running = False
-
-        if self._force_gc:
-            await self._gc_collect()
-
-        logger.debug(f"WorkerRunner '{self}': finished running")
+        raise NotImplementedError("Stage 22")
 
     async def stop_when_done(self) -> None:
         """Schedule all root pipeline workers to stop when their current processing is complete."""
