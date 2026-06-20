@@ -884,35 +884,7 @@ class FrameProcessor(BaseObject):
             frame: The frame to push.
             direction: The direction to push the frame.
         """
-        try:
-            timestamp = self._clock.get_time() if self._clock else 0
-            if direction == FrameDirection.DOWNSTREAM and self._next:
-                logger.trace(f"Pushing {frame} downstream from {self} to {self._next}")
-
-                if self._observer:
-                    data = FramePushed(
-                        source=self,
-                        destination=self._next,
-                        frame=frame,
-                        direction=direction,
-                        timestamp=timestamp,
-                    )
-                    await self._observer.on_push_frame(data)
-                await self._next.queue_frame(frame, direction)
-            elif direction == FrameDirection.UPSTREAM and self._prev:
-                logger.trace(f"Pushing {frame} upstream from {self} to {self._prev}")
-                if self._observer:
-                    data = FramePushed(
-                        source=self,
-                        destination=self._prev,
-                        frame=frame,
-                        direction=direction,
-                        timestamp=timestamp,
-                    )
-                    await self._observer.on_push_frame(data)
-                await self._prev.queue_frame(frame, direction)
-        except Exception as e:
-            await self.push_error(error_msg=f"Uncaught exception: {e}", exception=e)
+        raise NotImplementedError("Stage 05")
 
     def _check_started(self, frame: Frame):
         """Check if the processor has been started.
